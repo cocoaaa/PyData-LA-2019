@@ -1,0 +1,61 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+### JupyterNotebook ###
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
+
+### Images ###
+# Tagged Image File Format
+*.tiff
+*.tif
+
+
+# Portable Network Graphics
+*.png
+
+# JPEG
+*.jpg
+*.jpeg
+*.jpe
+*.jif
+*.jfif
+*.jfi
+
+# JPEG 2000
+*.jp2
+*.j2k
+*.jpf
+*.jpx
+*.jpm
+*.mj2
+
+### Data ###
+Data_Spacenet
+**/data
+
+### Tensorboard logs ###
+**/logs
+**/runs
+
+### fastai symlink ###
+fastai
+
+### temp files or swp file ###
+**/*.swp
+**/temp
+**/cache
+**/backup
+**/*.pkl
+
+# nohup output
+**/nohup.out
