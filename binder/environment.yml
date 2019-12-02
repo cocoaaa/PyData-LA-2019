@@ -248,7 +248,7 @@ dependencies:
     - protobuf==3.10.0
     - pyasn1==0.4.7
     - pyasn1-modules==0.2.7
-    - python-graphviz==0.13.2
+    - python-graphviz
     - requests-oauthlib==1.3.0
     - rsa==4.0
     - tensorboard==2.0.1
