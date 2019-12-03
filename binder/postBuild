@@ -4,7 +4,7 @@
 # pip install gdown
 
 # Download cocolike
-cd ../data
+cd data
 gdown https://drive.google.com/uc?id=1ueoqwcJ3imsN1xIm6z_1ZM4mwjX-DeI1
 tar -xf cocolike.tar.gz 
 rm cocolike.tar.gz
@@ -23,3 +23,8 @@ rm AOI_2_Vegas_Roads_Sample.tar.gz
 # Download model
 cd ../../pretrained 
 gdown https://drive.google.com/uc?id=1XwKd_2bOFmPG50QH7eetCpQAd0KUnjh3
+
+# Enabling jupyter extension
+jupyter contrib nbextension install --user
+jupyter nbextension enable --py widgetsnbextension
+jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.38
