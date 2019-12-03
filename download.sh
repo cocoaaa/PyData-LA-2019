@@ -1,5 +1,4 @@
-conda activate expml
-
+#!/bin/bash
 # https://stackoverflow.com/a/58141816
 # pip install gdown
 
