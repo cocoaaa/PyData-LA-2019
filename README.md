@@ -5,7 +5,7 @@ This repo contains contents for my PyData LA 2019 talk.
 This tutorial introduces how to make your data exploration and neural network training process more interactive and exploratory by using the combination of JupyterLab, HoloViews, and PyTorch. I will first introduce the basic concepts behind HoloViews, and walk through how to embellish each step of your machine learning workflow with HoloVie to emphasize the experimental nature of modeling.
 
 
-- Author: Hayley Song (haejinso@usc.edu)
+- Subtitle: A guide through multi-class road detection on satellite images with interactive visualization and explorative model building
 - Category: step-by-step tutorial
 - Prereq: 
     - Basic understanding of visaulization with python (eg. previously have used matplotlib.pyplot library)
@@ -18,18 +18,17 @@ This tutorial introduces how to make your data exploration and neural network tr
         - image as numpy ndarray
 - Material distribution
     - All materials needed to follow the tutorial will be shared in a self-containing GitHub repo, as well as a Binder environment
-    - I will create a docker image with the required libraries installed
     - Links to extra resources will be provided as appropriate
 
 ## Overview 
-This tutorial introduces how to make your data exploration and model building process more interactive and exploratory by using the combination of JupyterLab, HoloViz, and PyTorch.  [HoloViz](https://holoviz.org/) is a set of Python libraries that offers simple yet powerful visualization and GUI building tools which, together with other data analysis libraries (eg. `pandas`, `geopandas`, `numpy`) and machine learning framework (eg. `PyTorch`, `Tensorflow`) can make your modeling procedure more interactive and exploratory.   I will start by introducing four core HoloViz libraries (Holoviews, GeoViews, Panel and Param) and demonstrate basic examples on how we can essentially replace any "Matplotlib.pyplot" calls with equivalents in `HoloViz`.  You will see how this opens up the possibilities to directly interact with your visualization by eg. hovering over the graph to inspect values, querying RGB values of an image, or Lat/Lon values on your map.
+This tutorial introduces how to make your data exploration and model building process more interactive and exploratory by using the combination of JupyterLab, HoloViews, and PyTorch.  [HoloViews](https://HoloViews.org/) is a set of Python libraries that offers simple yet powerful visualization and GUI building tools which, together with other data analysis libraries (eg. `pandas`, `geopandas`, `numpy`) and machine learning framework (eg. `PyTorch`, `Tensorflow`) can make your modeling procedure more interactive and exploratory.   I will start by introducing four core HoloViews libraries (Holoviews, GeoViews, Panel and Param) and demonstrate basic examples on how we can essentially replace any "Matplotlib.pyplot" calls with equivalents in `HoloViews`.  You will see how this opens up the possibilities to directly interact with your visualization by eg. hovering over the graph to inspect values, querying RGB values of an image, or Lat/Lon values on your map.
 
-Following the introduction of the HoloViz libraries, I will demonstrate how to embellish each step of your machine learning workflow with HoloViz. First, you will learn to easily turn your PyTorch codes into a simple GUI that encaptulates the state of your model (or alternatively, the state of your training session). This GUI explicitly exposes your model parameters and training hyperparameters (eg. learning rate, optimizer settings, batch size) as directly tunable parameters.  Compared to conventional ways of specifying the hyperparameter settings with the help of 'argparse' library or config files, this GUI approach focuses on the experimental nature of modeling and integrates seamlessly with Jupyter notebooks.  After training a neural network model using our own GUI in the notebook, I will demonstrate how to understand the model by visualizing the intermediate layers with HoloViz and test the model with test images directly sampled from HoloViz visualization. 
+Following the introduction of the HoloViews libraries, I will demonstrate how to embellish each step of your machine learning workflow with HoloViews. First, you will learn to easily turn your PyTorch codes into a simple GUI that encaptulates the state of your model (or alternatively, the state of your training session). This GUI explicitly exposes your model parameters and training hyperparameters (eg. learning rate, optimizer settings, batch size) as directly tunable parameters.  Compared to conventional ways of specifying the hyperparameter settings with the help of 'argparse' library or config files, this GUI approach focuses on the experimental nature of modeling and integrates seamlessly with Jupyter notebooks.  After training a neural network model using our own GUI in the notebook, I will demonstrate how to understand the model by visualizing the intermediate layers with HoloViews and test the model with test images directly sampled from HoloViews visualization. 
 
 To illustrate these steps, I will focus on the problem of classfying different types of roads on satellite images, defined as a multi-class semantic segmentation problem.  Starting from the data exploration to the trained model understanding, you will learn different ways to explore the data and models by easily building simple GUIs in a Jupyter notebook. 
 
 In summary, by the end of the talk you will have learned:
-- how to make your data exploration more intuitive and experimental using HoloViz libraries
+- how to make your data exploration more intuitive and experimental using HoloViews libraries
 - how to turn your model script into a simple GUI that allows interactive hyperparameter tuning and model exploration
 - how to monitor the training process in realtime
 - how to quickly build a GUI tool to inspect the trained models in the same Jupyter notebook
@@ -46,8 +45,8 @@ This tutorial will consists of five main sections. I will first introduce the ba
 - Step 4: Analyze your learned model on new images + Understand what your model has learned by looking at intermediate feature maps with `Holoviews` and `Panel` [15mins]
 - Q/A [5~10 mins]
 
-### Step 0: Introduction to `HoloViz` libraries
-In this introductory section, I will go over the basic concepts behind the `HoloViz` libraries. I will provide simple examples that show how we can replace any `Matplotlib` plot calls with equivalent calls in `Holoviews/Geoviews` with no hassle, and build easy tools to interact with your data.
+### Step 0: Introduction to `HoloViews` libraries
+In this introductory section, I will go over the basic concepts behind the `HoloViews` libraries. I will provide simple examples that show how we can replace any `Matplotlib` plot calls with equivalent calls in `Holoviews/Geoviews` with no hassle, and build easy tools to interact with your data.
 
 ### Step 1: Explore your dataset
 The first step in building a machine learning model is to understand your dataset. For the scope of this tutorial (ie.semantic segmentation of road types from satellite images), we will use the SpaceNet datasets. More details on how to get the data as well as how the data are collected and annotated can be found [here](https://spacenetchallenge.github.io/datasets/datasetHomePage.html). The original dataset is very large (>100GB) and requires a lot of preprocessing to be useful for training. For example, the RGB images are 16bits of size 1300x1300, and the "target" roads are vector lines (as opposed to raster images), which means they need to be rasterized. I have prepared a smaller sample dataset consisting of the RGB images converted to 8bits and cropped to 520x520 size, as well as road buffers as rasters which can be easily used as the target images. I will share the dataset to accompany my tutorial.  The shared dataset will consists of input RGB images and target mask images. Each pixel of a target image will contain one of the labels in {'highway', 'track', 'dirt', 'others'} (as `uint8`).
@@ -62,3 +61,4 @@ In this section, I will show how to wrap around a `PyTorch`'s NN model with `par
 ### Step 3: Interactively test your trained model on the new data
 
 ### Step 4: Understand what the model has learned 
+
