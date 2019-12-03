@@ -1,385 +1,233 @@
-import os, time
-from collections import defaultdict
+#helpers.py
+## todo: separate to io.helpers.py and viz.helpers.py
+import os, sys, random, re
+
 import numpy as np
-from pathlib import Path
+import datetime as dt
+from collections import Counter
+
+import holoviews as hv
+from typing import Iterable, Dict, Callable
+import torch
+
 import pdb
-
-
-
-################################################################################
-# IO Helpers
-################################################################################
-def get_timestamp():
-    return dt.datetime.now().strftime("%y%m%d_%H%M%S")
-    
-def get_temp_fname(prefix='', suffix=''):
-    tstamp = get_timestamp()
-    return ''.join(['_'.join([prefix, tstamp]), suffix])
-
-import imageio
-fname = '../outputs/levelset/2019-08-02/sdStar1_f_-1_dt_0.001_t_0_0.3.gif'
-def tensor_from_video(fname):
-    reader = imageio.get_reader(fname, 'ffmpeg')
-    imgs = np.transpose( np.stack(list(reader.iter_data()), axis=0), (0,3,1,2))
-    imgs = np.expand_dims(imgs, 0)
-    assert imgs.ndim == 5, f'Video data must be 5 dimensional: batchsize, timesteps, C,H,W: {imgs.dim}'
-    return torch.from_numpy(imgs)
-
-    
-################################################################################
-# Python Object Inspection Helpers
-################################################################################
-def get_mro(myObj):
-    return myObj.__class__.mro()
-
-def show_attrs(myObj):
-    import holoviews as hv
-    atts = [str(att) for att in dir(myObj) if not att.startswith('_')]
-    n_atts = len(atts)
-    return hv.Table(pd.DataFrame(atts, columns=['att']))
-
-def nprint(*args, header=True):
-    if header:
-        print("="*80)
-    for arg in args:
-        pprint(arg)
-
-def attr_print(myObj):
-    attrs = [att for att in dir(dimx) if not att.startswith('_')]
-    pprint(attrs)
-    
-################################################################################
-# Floating Points precision cleanup
-################################################################################
-def clip_close_values(arr):
+## IO Helpers
+def load_txt(txt_file, to_sort=True):
     """
-    A method to clean up floating points in an array so that "equal" values 
-    (decided by np.isclose function) are assigned to only a unique representative
-    value. For instance, arr=[ 0.000000000001, 0.000000000009] will appear to have
-    different colors by both matplotlib.pyplot and holoviews, but we want the visualization
-    to match the fact they actually represent the same value even though they have 
-    slightly different numerical values (due to some operations that generated the array,
-    eg. np.gradient.
-    
-    We use python dictionary and the computation complexity it \theta(arr.numele()) 
+    Read data line by line
     """
-    unique_vals = defaultdict(int)
-    clipped = np.empty_like(arr)
-    for i, val in enumerate(arr.flat):
-        i_tuple = np.unravel_index(i, arr.shape)
-
-        curr_keys = np.asarray(list(unique_vals.keys()))
-        key_found = np.unique(curr_keys[np.isclose(val, curr_keys)])
-        try:
-            clipped[i_tuple] = key_found[0]
-            unique_vals[key_found[0]] += 1 
-#             print("--\tFound key: ", key_found[0])
-
-        except IndexError:
-#             print("First time!: ", val)
-            clipped[i_tuple] = val
-            unique_vals[val] += 1 
-        except:
-            print("This should never be printed")
-    return clipped
-#     return clipped, unique_vals
-
-
-################################################################################
-# Profiling Helpers
-################################################################################
-def timeit(method):
-    # src: https://is.gd/knmjbS"
-    def timed(*args, **kw):
-        ts = time.time()
-        result = method(*args, **kw)
-        te = time.time()
-
-        nprint(f'{method.__name__} took: {te-ts:.3f}sec')
-        return result
-
-    return timed
-
-################################################################################
-# Geocoding Conversion Helpers
-################################################################################
-## geocoders: addr string -> lat, lon & vice versa
-def get_latlon(addr_str):
-    """
-    Given a string address, resolve its location in (lat, lon) degrees
-    """
-    geolocator = Nominatim(user_agent="myawesomeproj")
-    loc = geolocator.geocode(addr_str)
-    return loc.latitude, loc.longitude
-
-def get_addr(lat, lon):
-    """
-    Given lat, lon in degrees, return a resolved address as a string.
-    Eg: get_addr_str(52.509669, 13.376294) -> "Potsdamer Platz, Mitte, Berlin, 10117..."
-    """
-    geolocator = Nominatim(user_agent="specify_your_app_name_here")
-    loc= geolocator.reverse(f'{lat}, {lon}')
-    return loc.address
-
-
-################################################################################
-# Coordinate System Conversion Helpers
-################################################################################
-def UV2angMag(U,V):
-    """
-    Given: U,V as two MxN np.ndarrays for x, y coordinates (eg. outputs of np.meshgrid) such that U[j,i] and V[j,i] corresponds to x,y components of a vector.
-    This function computes the angle and magnitude of the vector and stores in the 
-    output arrays. Conceptually, it computes: 
+    data = []
+    with open(txt_file, 'r') as reader:
+        for l in reader:
+            data.append(l.strip())
+    if to_sort:
+        data.sort()
         
-        angle = np.empty(U.shape)
-        mag = np.empty(U.shape)
-        for j in V[:,0]:
-            for i in U[0,:]:
-            v = vec(U[j,i], V[j,i])
-            angle[j,i] = angle(v)
-            mag[j,i] = magnitude(v)
-           
-    This is useful to visualize the vectorfield using holoviews's hv.VectorField.
+    return data
+  
+def write2lines(myItrb, out_fn):
+    """
+    Write each item in myItrb to a line
+    """
+    with open(out_fn, 'w') as writer:
+        for item in myItrb:
+            writer.write(str(item)+'\n')
+            
+def append2file(content, fn):
+    with open(fn, 'a') as f:
+        f.write(str(content)+'\n')
     
+def now2str():
+    return dt.datetime.now().strftime('%Y%m%d_%H%M')
+
+_camel_re1 = re.compile('(.)([A-Z][a-z]+)')
+_camel_re2 = re.compile('([a-z0-9])([A-Z])')
+def camel2snake(name:str)->str:
+    s1 = re.sub(_camel_re1, r'\1_\2', name)
+    return re.sub(_camel_re2, r'\1_\2', s1).lower()
+
+def arr2str(arr: Iterable, decimal: int = 3, delimiter: str = ','):
+    arr = [str(np.around(ele, decimal)) for ele in arr]
+    return delimiter.join(arr)
+
+def snake2camel(s):
+    "Convert snake_case to CamelCase"
+    return ''.join(s.title().split('_'))
+
+def class2attr(self, cls_name):
+    return camel2snake(re.sub(rf'{cls_name}$', '', self.__class__.__name__) or cls_name.lower())
+
+def get_cls_name(x, camel=False):
+    name = None
+    try:
+        name = x.__name__
+    except AttributeError:
+        name = x.__class__.__name__
+
+    if camel:
+        name = camel2snake(name)
+    return name
+
+def get_module_name(x):
+    return x.__module__
+
+def npify(arr):
+    if not isinstance(arr, np.ndarray):
+        arr = np.asarray(arr)
+    return arr
+
+# context managers
+def replacing_yield(o, attr, val):
+    """context manager to temporarily replace an attribute
+    Copied from: https://github.com/fastai/fastai_dev/blob/master/dev/13_learner.ipynb#L23
+    """
+    old = getattr(o, attr)
+    try:
+        yield setattr(o, attr, val)
+    finally:
+        setattr(o, attr, old)
+
+## Transform helpers
+def get_pad_size(img_h, img_w, out_size):
+    """
+    Computes the number of paddings in height and width
     Args:
-    - U,V (MxN np.ndarray): encodes X,Y coordinate grids respectively
+    - img_h (int)
+    - img_w (int)
+    - out_size (int or tuple): if tuple, it must be (out_h, out_w)
     
     Returns:
-    - angle, mag: tuple of MxN np.ndarray that encode ang (or mag) for the grid space
-    That means, angle[j][i] at (X[j][i],Y[j][i]) location
+    - tuple: (number_to_pad_in_height, number_to_pad_in_width)
     """
-    mag = np.sqrt(U**2 + V**2)
-    angle = (np.pi/2.) - np.arctan2(U/mag, V/mag)
-
-    return (angle, mag)
-
-################################################################################
-# Time Type Conversion Helpers
-################################################################################
-def to_datetime(tlist):
-    """
-    Operation to convert any non-python datetime object in a list of time objects
-    to (python) dt.datetime object. 
-    This is useful for making the xaxis of any time-series plots human-readable, 
-    possibly due to a bug in bokeh.
-    """
-    mro = get_mro
+    out_h, out_w = out_size if isinstance(out_size, tuple) else (out_size, out_size)
+    assert out_h >= img_h, f'out_h must be < img_h. img_h is {img_h}'
+    assert out_w >= img_w, f'out_w must be < img_w. img_w is {img_w}'
     
-    # check if the topmost mro is datetime.datetime object
-    if all( (mro(t)[0] == dt.datetime) for t in tlist):
-        return tlist
-
-    print('Converting timevalues to python datetime object')
-    dt_list= list(map(lambda t: t.to_pydatetime(), tlist))
-    return dt_list
+    nx_pad = max(out_w - img_w, 0)
+    ny_pad = max(out_h - img_h, 0)
+    return ny_pad, nx_pad
+  
+#Stat helpers
+def count_freqs(batch_y, nClass, ignore_idx=None, verbose=False):
+    """
+    batch_y (mini-batch of 2D labels): shape is (bs, h, w) and each value
+    is one of ints in [0,1,...nClass-1]
+    
+    Returns
+    - a dictionary of counts of unique values in batch_y
+    """
+    _c = Counter()
+    for y in batch_y:
+        _c.update(Counter(y.flat))
         
-################################################################################
-# URL helpers
-################################################################################
-def dict2json(d):
-    return JSON(d)
 
-def display_dict2json(d):
-    display(JSON(d))
+    c = dict()
+    for label in _c:
+        if label >= nClass or label == ignore_idx:
+            continue
+        c[label] = _c[label]
+        
+    if verbose:
+        print('Before truncating by nClass and filtering out idx to ignore: ')
+        print('\tN unique classes: ', len(_c))
+        print('After popping, len(c): ', len(c))
+      
+    return c
 
-def is_valid_url(path):
-    import requests
-    r = requests.head(path)
-    return r.status_code == requests.codes.ok
+## 3D tensor to numpy conversion
+def to_np(t):
+    assert t.ndim in [3,4], f'input tensor must be 3 or 4 dim: {t.ndim}'
     
-    
-################################################################################
-# Pandas helpers
-################################################################################
-def cols_with_null(df):
+    if t.ndim == 3:
+        t_np = t.numpy()[None, :, :, :] 
+    else:
+        t_np = t.numpy()
+    return t_np.transpose((0, -2, -1, -3)).squeeze()
+
+def to_tensor(nda):
+    assert nda.ndim in [3,4], f'input array must be 3 or 4 dim: {nda.ndim}'
+    if nda.ndim == 3:
+        nda = nda[None, :, :, :]
+    transposed = nda.transpose((0, -1, -3, -2))
+    return torch.from_numpy(transposed.squeeze())
+
+def to_device(model, device):
     """
-    Returns any columnnames with any null value
+    Check if the model's parameters are already in `device`
+    Only perform the model.to(device) if not.
+    This modifies model if necessary. After this function is applied it is guaranteed that all the 
+    parameters of model are in `device`'s memory
+    """
+    p = next(model.parameters())
+    if p.device == device:
+        return
+    model.to(device)
+
+def get_device(model):
+    """Assumes all parameters of the model are in one device
+    """
+    p = next(model.parameters())
+    return p.device
+
+def assert_mean_reduction(loss_fn):
+    if hasattr(loss_fn, 'reduction'):
+        assert loss_fn.reduction == 'mean', f'''loss_fn should compute (mini-batch) averaged mean:  
+        {loss_fn.reduction}'''
+
+
+
+## Visualiza a batch of datasets
+def show_batch(batch, max_num=2):
+    """
+    batch (tuple of tensors): returned by SegDataset
+    Visualize the batch x and y overlay as hv Elements
+    """
+    batch_x, batch_y = batch
+    bs = len(batch_x)
+    assert bs == len(batch_y), len(batch_y)
+    for i,(x, y) in enumerate(zip(batch_x, batch_y)):
+        if i >= max_num:
+            break
+        x_np = x.detach().numpy().transpose((1,2,0))
+        y_np = y.detach().numpy()
+        print("x: ", x_np.dtype, x_np.shape)
+        print("y: ", y_np.dtype, y_np.shape)
+        overlay = hv.RGB(x_np) + hv.Image(y_np, group='mask')
+        display(overlay)
+#         pdb.set_trace()
+        
+    
+def show_filter_batch(batch, n_cols=4, max_show=16):
+    """
+    Show a batch of filter tensors using holoviews
+    
     Args:
-    - df(pandas.DataFrame)
+    - batch (torch.tensor): 4 dimensional torch.tensor. (bs, nC, H, W)
+    
     Returns:
-    - cols (list): list of strings, each of which correseponds to the column name
-    with any null values
+    - holoviews layout object
     """
-           
-    cols = [c for c in df.columns if df[c].isnull().values.any()]
-    return cols
-
-def select(df, selection, axis):
-    """
-    Returns a new dataframe with its axis reduced to the elements in `selection`
+    bs = len(batch)
+    batch_np = batch.cpu().numpy().transpose((0, -2, -1, -3))[:max_show]
+    print('Batch in numpy: ', batch_np.shape)
+    n_rows = int(float(bs/n_cols))
     
-    Args: 
-    - selection (list): a list of column names (if axis=1) or row indices (if axis=0)
-    - axis: 0 for row selection, 1 for column selection
-    
-    Example:
-    ```python
-    df = pd.DataFrame({'a': [1,2,3], 'b': [10,20,30]})
-    
-    # select certain columns, in a certain order
-    new_cols = ['b']
-    print(select(df, new_cols, axis=1))
-    
-    # Reorder columns
-    new_cols = ['b','a']
-    print(select(df, new_cols, axis=1)
-    
-    # Select a subset of rows
-    r_sels = [0]
-    print(select(df, r_sels, axis=0)
-    
-    ```
-    """
-    if axis not in [0,1]:
-        raise ValueError(f'axis must be either 0 or 1:  {axis}')
-    if axis == 0:
-        return df.loc[df.index.isin(selection)]
-    if axis == 1:
-        return df[selection]
+    layout = []
+    for img in batch_np:
+        layout.append(hv.Image(img, group='mask').opts(shared_axes=False))
+    return hv.Layout(layout).cols(n_cols)
     
     
-def reorder_cols(df, new_cols):
-    """
-    Returns a new dataframe with column orders switched to the new_cols
-    Args:
-    - df (pd.DataFrame)
-    - new_cols (list): a list of new column names. Can be a subset of df.columns
-        in which case, only specified columns will be selected in the given order
-    Returns:
-    - pd.DataFrame: a new dataframe object with the columns selected
-    """
-    if not set(new_cols).issubset(set(df.columns)):
-        raise ValueError('Input column list must be a subset of the original df')
-    return df[new_cols]
-    
-
-################################################################################
-# Xarray helpers
-################################################################################
-
-
-################################################################################
-# holoviews helpers
-# todo: move to hv_utils.py
-################################################################################
-def relabel_elements(ndoverlay, labels):
-    """
-    ndOverlay is indexed by integer
-    labels (str or iterable of strs)
-    length of hv elements in the overlay must equal to the length of labels
-    """
-    import holoviews as hv
-    from itertools import cycle
-    if isinstance(labels, str):
-        labels = [labels]
-    if isinstance(labels, list) and len(labels) != len(ndoverlay):
-        raise ValueError('Length of the labels and ndoverlay must be the same')
-        
-        
-    it = cycle(labels) 
-    relabeled = hv.NdOverlay({i: ndoverlay[i].relabel(next(it)) for i in range(len(ndoverlay))})
-    return relabeled
-
-
-
-## string manipulation
-def to_fname(s):
-    return '_'.join(
-    list(map(lambda s: s.strip(',_-:;').lower(), s.split()))
-)
     
     
-################################################################################
-# Tests
-################################################################################
-def test_get_mro():
-    print( get_mro('somestring') )
-
-def test_nprint():
-    nprint(10, 100)
-    nprint("line1", "line2")
-    nprint(['ele1', 'ele2','ele3'])
-    nprint('line1', 'line2', 'line3')
-
-def test_dict2json():
-    d = {'user': ['hayley', 'wanting', 'bob', 'yijun'],
-         'age': [10,12,11, 9]
-        }
-    print(d)
-    print(dict2json(d))
-
-def test_cols_with_null():
-    pass
-
-def test_clip_close_values_1():
-    tiny1 = 0.02020202020202011
-    tiny2 = 0.020202020202020332
-    original = np.atleast_2d([tiny1,tiny1, tiny2, tiny2, tiny1])
-    clipped = clip_close_values(original)
-    f,ax = plt.subplots(1,2)
-    ax[0].imshow(original)
-    ax[0].set_title('original')
-    ax[1].imshow(clipped)
-    ax[1].set_title('clipped')
-    
-def test_clip_close_values_2():
-    def linear_array():
-        h,w = 100,100
-        xs = np.linspace(-1,1,num=w)
-        ys = np.linspace(-1,1,num=h)[::-1]
-        zz = np.empty((w,h))
-        for i in range(len(xs)):
-            for j in range(len(ys)):
-                zz[j,i] = ys[j] 
-        return (xs,ys,zz)
-    xs,ys,zz = linear_array()
-    original = np.atleast_2d(zz)
-    clipped = clip_close_values(original)
-    f,ax = plt.subplots(1,2)
-    ax[0].imshow(original)
-    ax[0].set_title('original')
-    ax[1].imshow(clipped)
-    ax[1].set_title('clipped')    
-
-
-def test_is_valid_url():
-    url = 'http://workflow.isi.edu/MINT/FLDAS/FLDAS_NOAH01_A_EA_D.001/2019/04/FLDAS_NOAH01_A_EA_D.A20190401.001.nc'
-    print('url: ', url)
-    print('url exists? :', is_valid_url(url))
-    
-def test_get_latlon():
-    addr = '424 West Pico Blvd, Los Angeles, 90015'
-    print(addr)
-    print(get_latlon(addr))
-
-def test_get_addr():
-    lat, lon = -5, 37 # somewhere in africa
-    print('lat, lon: ', lat, lon)
-    print(get_addr(lat, lon))
-
-def test_to_fname():
-    s = 'Pyin Hpyu Gyi, Republic of the Union of Myanmar: Google- Earth'
-    print('original: ', s)
-    print('to_fname: ', to_fname(s))
-    
-def test_reorder_cols():
-    df = pd.DataFrame({'a': [1,2,3], 'b': [10,20,30]})
-    reordered = reorder_cols(df, ['b','a'])
-    print('original: ')
-    display(df)
-    print('reordered: ')
-    display(reordered)
-                             
-def test_all():
-    test_get_mro()
-    test_nprint()
-    test_dict2json()
-    test_cols_with_null()
-    test_is_valid_url()
-    test_get_latlon()
-    test_get_addr()
-    test_to_fname()
-    
-    
-if __name__ == '__main__':
-    test_all()
+## Set random seed
+def random_seed(seed_value, use_cuda:bool):
+    np.random.seed(seed_value) # cpu vars
+    torch.manual_seed(seed_value) # cpu  vars
+    random.seed(seed_value) # Python
+    if use_cuda: 
+        torch.cuda.manual_seed(seed_value)
+        torch.cuda.manual_seed_all(seed_value) # gpu vars
+        torch.backends.cudnn.deterministic = True  #needed
+        torch.backends.cudnn.benchmark = False
+     
