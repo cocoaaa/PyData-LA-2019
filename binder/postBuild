@@ -27,4 +27,4 @@ gdown https://drive.google.com/uc?id=1XwKd_2bOFmPG50QH7eetCpQAd0KUnjh3
 # Enabling jupyter extension
 jupyter contrib nbextension install --user
 jupyter nbextension enable --py widgetsnbextension
-jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.38
+#jupyter labextension install @jupyter-widgets/jupyterlab-manager@0.38
