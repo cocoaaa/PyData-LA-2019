@@ -56,6 +56,6 @@ fastai
 **/cache
 **/backup
 **/*.pkl
-
+*.tar*
 # nohup output
 **/nohup.out
