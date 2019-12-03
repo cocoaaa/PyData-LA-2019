@@ -1,6 +1,6 @@
 # Experimental ML with Holoviews/Geoviews + Pyorch
 This repo contains contents for my [PyData LA 2019](https://pydata.org/la2019/schedule/) tutorial 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/cocoaaa/PyData-LA-2019/master
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/cocoaaa/PyData-LA-2019/master)
 
 This tutorial introduces how to make your data exploration and neural network training process more interactive and exploratory by using the combination of JupyterLab, HoloViews, and PyTorch. I will first introduce the basic concepts behind HoloViews, and walk through how to embellish each step of your machine learning workflow with HoloVie to emphasize the experimental nature of modeling.
 
