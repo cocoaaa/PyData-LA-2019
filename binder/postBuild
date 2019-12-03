@@ -11,7 +11,7 @@ rm cocolike.tar.gz
 
 # Download samples
 # gdown https://drive.google.com/uc?id=1dNYHuMmnOuU3H9fniuxGisYMOYeSUwbR
-cd sample
+cd samples
 gdown https://drive.google.com/uc?id=1D9cmDlfhpLTswWoJYAf4vqb85cjDnKrm
 tar -xf AOI_2_Vegas_Roads_Sample.tar.gz 
 rm AOI_2_Vegas_Roads_Sample.tar.gz
