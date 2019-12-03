@@ -21,7 +21,9 @@ rm AOI_2_Vegas_Roads_Sample.tar.gz
 
 
 # Download model
-cd ../../pretrained 
+cd ../..
+mkdir pretrained 
+cd pretrained 
 gdown https://drive.google.com/uc?id=1XwKd_2bOFmPG50QH7eetCpQAd0KUnjh3
 
 # Enabling jupyter extension
