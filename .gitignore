@@ -39,6 +39,9 @@ ipython_config.py
 *.jpm
 *.mj2
 
+# Keynote slides
+*.key
+
 ### Data ###
 Data_Spacenet
 **/data
